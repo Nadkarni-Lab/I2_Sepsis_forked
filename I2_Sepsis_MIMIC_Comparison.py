@@ -53,7 +53,6 @@ i2bmi.jupyter_widen()
 #import I2 Sepsis Functions
 import I2_Sepsis
 
-
 # In[ ]:
 
 
@@ -65,10 +64,10 @@ import I2_Sepsis
 
 from sqlalchemy import create_engine
 # Postgres username, password, and database name
-POSTGRES_ADDRESS = '127.0.0.1' ## INSERT YOUR DB ADDRESS
+POSTGRES_ADDRESS = 'nadkag01a-1.hpc.mssm.edu' ## INSERT YOUR DB ADDRESS
 POSTGRES_PORT = '5432' ## INSERT YOUR PORT (DEFAULT IS 5432)
-POSTGRES_USERNAME = 'postgres' ## INSERT YOUR POSTGRES USERNAME
-POSTGRES_PASSWORD = 'password' ## INSERT YOUR POSTGRES PASSWORD
+POSTGRES_USERNAME = 'jayarp02' ## INSERT YOUR POSTGRES USERNAME
+POSTGRES_PASSWORD = 'TfhfbA8ZiPLfMZ' ## INSERT YOUR POSTGRES PASSWORD
 POSTGRES_DBNAME = 'mimiciv'  ## INSERT YOUR POSTGRES DATABASE NAME
 
 
@@ -264,19 +263,19 @@ UNION
 (
 SELECT subject_id,charttime as time,po2 as val, 'pO2' as mark, hadm_id
 FROM mimic_derived.bg
-WHERE po2 IS NOT NULL and specimen_pred = 'ART.'
+WHERE po2 IS NOT NULL and specimen = 'ART.'
 )
 UNION
 (
 SELECT subject_id,charttime as time,fio2 as val, 'fio2' as mark, hadm_id
 FROM mimic_derived.bg
-WHERE fio2 IS NOT NULL and specimen_pred = 'ART.'
+WHERE fio2 IS NOT NULL and specimen = 'ART.'
 )
 UNION
 (
 SELECT subject_id,charttime as time, fio2_chartevents as val, 'fio2' as mark, hadm_id
 FROM mimic_derived.bg
-WHERE fio2_chartevents IS NOT NULL and specimen_pred = 'ART.'
+WHERE fio2_chartevents IS NOT NULL and specimen = 'ART.'
 )
 UNION
 (
@@ -428,6 +427,8 @@ def load_mimic(limit=None):
             print('loading {}'.format(script),end='...')
             data[script] = pd.read_sql_query(sql_scripts[script] +' WHERE hadm_id IN {}'.format(include_hadm_id), cnx).drop_duplicates().reset_index(drop=True)
             print(f'({time.time()-curtime:.1f}s)')
+
+        print("done with data recovery 500")
  
     else:
         for script in sql_scripts:
@@ -442,7 +443,7 @@ def load_mimic(limit=None):
         last = data['adt'].sort_values(by ='dischtime',ascending = True).groupby(['subject_id','hadm_id']).last().reset_index()
         data['adt'] = pd.merge(first.drop('dischtime',axis=1),last[['subject_id','hadm_id','dischtime']], on=['subject_id','hadm_id'], how='left')
 
-    
+        print("full data extraction done!!") 
     return data
 
 
@@ -458,9 +459,12 @@ def load_mimic(limit=None):
 #LOAD DATA AND CONVERT DATA TYPES 
 #CONIDER USING THE data = load_mimic(500) TO LOAD A SMALLER PORTION OF THE DATABASE TO SAVE TIME OR MEMORY
 
-#data = load_mimic(500)
-data = load_mimic()
+data = load_mimic(500)
+#data = load_mimic()
 
+print(data)
+
+quit()
 
 
 print('\n')
