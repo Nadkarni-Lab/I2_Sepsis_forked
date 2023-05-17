@@ -24,6 +24,7 @@ from itertools import product
 
 import os
 import pandasql as ps
+from IPython.display import display
 
 import gc
 import matplotlib.pyplot as plt
@@ -464,8 +465,6 @@ data = load_mimic(500)
 
 print(data)
 
-quit()
-
 
 print('\n')
 data['adt']['subject_id'] = data['adt']['subject_id'].dropna().astype(int).astype(str)
@@ -481,7 +480,7 @@ data['adt'].reset_index(drop=True,inplace=True)
 dfs = list(data.keys())
 dfs.remove('adt')
 
-
+print("loop through dfs")
 
 for df in dfs:
     if 'subject_id' in data[df].columns:
@@ -501,7 +500,7 @@ for df in dfs:
         
         
     #print(df)
-    #display(data[df].head())
+    display(data[df].head())
     #print('percent in adt: {:.2f}'.format(data[df]['subject_id'].isin(data['adt']['subject_id']).mean()*100))
     #print('')
 
@@ -514,7 +513,7 @@ for df in dfs:
 
 # In[ ]:
 
-
+print("drop missing values that are needed")
 #DROP MISSING VALUES THAT ARE NEEDED
 data['cxdf'].dropna(subset=['charttime'],inplace=True)
 data['abxdf'].dropna(subset=['starttime'],inplace=True)
@@ -523,7 +522,6 @@ data['uo'] = data['uo'].dropna()
 
 
 # In[ ]:
-
 
 # CHANGE ADT TO CORRECT FORMAT FOR MINIMAL SEPSIS DATA MODEL
 def make_adt(adt,icu_adt):
@@ -591,6 +589,7 @@ def make_adt(adt,icu_adt):
 
 # In[ ]:
 
+print("finalize dataframes")
 
 #FINALIZE DATAFRAMES
 lvdf = data['lvdf'].copy()
@@ -609,6 +608,7 @@ uo = data['uo'].copy()
 
 # In[ ]:
 
+print("map current column names to the colums in the minimal sepsis data model")
 
 #MAP CURRENT COLUMN NAMES TO THE COLUMNS IN THE MINIMAL SEPSIS DATA MODEL
 names_to_standard = {
@@ -656,6 +656,7 @@ names_to_standard = {
 
 # In[ ]:
 
+print("rename columns")
 
 # RENAME COLUMNS
 dfs = [lvdf, adt, vasodf, dxdf, mvdf, abxdf, cxdf, demo , Sepsis3_key , uo]
@@ -666,6 +667,7 @@ for df in dfs:
 
 # In[ ]:
 
+print("drop columns not needed")
 
 # DROP COLUMNS THAT ARE NOT NEEDED
 adt = adt.drop(columns=['admit_time','discharge_time'])
@@ -679,7 +681,7 @@ uo = uo.drop(columns=['encounter_id'])
 
 # In[ ]:
 
-
+print("remove non-invasive ventilated patients - as decided by MIMIC conception of SEPSIS 3")
 #REMOVE NON INVASIVE VENTILATED PATIENTS AS THIS IS THE DECISION IN MIMICS CONCEPTION OF SEPSIS-3
 display(pd.DataFrame(mvdf['vent_type'].value_counts()))
 mvdf = mvdf[mvdf['vent_type'].isin(['InvasiveVent'])].reset_index(drop=True)
@@ -688,7 +690,7 @@ mvdf.loc[mvdf['vent_type']=='InvasiveVent','vent_type']='VENT'
 
 # In[ ]:
 
-
+print("remove pressors other than ne, epi, dopamine, dobutamine as this was decided by MIMIC")
 # REMOVE PRESSORS OTHER THAN 'norepinephrine','epinephrine','dopamine','dobutamine' AS THIS WAS THE DECISION MADE BY MIMIC
 display(pd.DataFrame(vasodf['pressor_name'].value_counts()))
 vasodf = vasodf[vasodf['pressor_name'].isin(['norepinephrine','epinephrine','dopamine','dobutamine'])].reset_index(drop=True)
@@ -706,14 +708,14 @@ vasodf = vasodf[vasodf['pressor_name'].isin(['norepinephrine','epinephrine','dop
 
 # In[ ]:
 
-
+print("current labels")
 # CURRENT LABELS
 lvdf['label'].value_counts()
 
 
 # In[ ]:
 
-
+print("map current labels required by minimal sepsis data model")
 # MAP CURRENT LABELS TO LABELS REQUIRED BY THE MINIMAL SEPSIS DATA MODEL
 lvdf_map = {#'TEMP' : 'temp_c', 
             'HR' : 'hr', 
@@ -748,7 +750,10 @@ lvdf_map = {#'TEMP' : 'temp_c',
             #'SFRatio': np.nan,
            }
 
+print("lvdf_mapto inverse map")
 inv_map = {v: k for k, v in lvdf_map.items() if pd.notna(k)}
+print(inv_map)
+
 
 lvdf['label']  = lvdf['label'].map(inv_map)
 lvdf['time_measured'] = pd.to_datetime(lvdf['time_measured'],utc=True)
@@ -760,11 +765,11 @@ lvdf['label'].value_counts()
 
 # In[ ]:
 
-
+print("drop unknown labels")
 # DROP ANY UNKNOWN LABELS
 lvdf = lvdf[~lvdf['value'].isna()]
 
-
+print("explore abx")
 # #### Explore Abx
 
 # In[ ]:
@@ -776,32 +781,29 @@ abxdf['abx_end'] = pd.to_datetime(abxdf['abx_end'],utc=True)
 
 # In[ ]:
 
-
-abx_map = pd.read_excel('MIMIC_abx_review.xlsx')[['antibiotic','route','route_corrected']].rename(columns={'antibiotic':'antibiotic_name'})
-
-
-# In[ ]:
-
-
-
+print("read MIMIC_abx_review.xlsx. ")
+#abx_map = pd.read_excel('MIMIC_abx_review.xlsx')[['antibiotic','route','route_corrected']].rename(columns={'antibiotic':'antibiotic_name'})
 
 
 # In[ ]:
 
 
-abx_explore = pd.merge(abxdf,abx_map,on=['antibiotic_name','route'],how='left')
+# In[ ]:
+
+
+#abx_explore = pd.merge(abxdf,abx_map,on=['antibiotic_name','route'],how='left')
 
 
 # In[ ]:
 
 
-abx_explore[~abx_explore['route_corrected'].isin(['PO','IV'])]['route_corrected'].value_counts()
+#abx_explore[~abx_explore['route_corrected'].isin(['PO','IV'])]['route_corrected'].value_counts()
 
 
 # In[ ]:
 
 
-inappropriate_route = abx_explore[abx_explore['route_corrected'].isin(['Dwell','Topical','Irrigation','Inhaled'])]
+#inappropriate_route = abx_explore[abx_explore['route_corrected'].isin(['Dwell','Topical','Irrigation','Inhaled'])]
 
 
 # In[ ]:
@@ -813,31 +815,31 @@ inappropriate_route = abx_explore[abx_explore['route_corrected'].isin(['Dwell','
 # In[ ]:
 
 
-inappropriate_route = inappropriate_route.groupby(['antibiotic_name','route','route_corrected'])['patient_id'].count().reset_index().rename(columns={'patient_id':'count'})
+#inappropriate_route = inappropriate_route.groupby(['antibiotic_name','route','route_corrected'])['patient_id'].count().reset_index().rename(columns={'patient_id':'count'})
 
 
 # In[ ]:
 
 
-inappropriate_drug = abx_explore[abx_explore['antibiotic_name'].str.contains('nitro',case=False)]
+#inappropriate_drug = abx_explore[abx_explore['antibiotic_name'].str.contains('nitro',case=False)]
 
 
 # In[ ]:
 
 
-inappropriate_drug 
+#inappropriate_drug 
 
 
 # In[ ]:
 
 
-inappropriate_drug  =inappropriate_drug.groupby(['antibiotic_name','route','route_corrected'])['patient_id'].count().reset_index().rename(columns={'patient_id':'count'})
+#inappropriate_drug  =inappropriate_drug.groupby(['antibiotic_name','route','route_corrected'])['patient_id'].count().reset_index().rename(columns={'patient_id':'count'})
 
 
 # In[ ]:
 
 
-inappropriate_abx = pd.concat([inappropriate_route,inappropriate_drug]).reset_index(drop=True)
+#inappropriate_abx = pd.concat([inappropriate_route,inappropriate_drug]).reset_index(drop=True)
 
 
 # In[ ]:
@@ -858,20 +860,29 @@ cx_final = cxdf
 # In[ ]:
 
 
-cx_map = pd.read_excel('MIMIC_cx_review-MH-2-24-22.xlsx')[['spec_type_desc','Description']].rename(columns={'spec_type_desc':'culture_type'})
+#cx_map = pd.read_excel('MIMIC_cx_review-MH-2-24-22.xlsx')[['spec_type_desc','Description']].rename(columns={'spec_type_desc':'culture_type'})
 
 
 # In[ ]:
 
 
-cx_explore = pd.merge(cxdf,cx_map,on='culture_type',how='left')
+#cx_explore = pd.merge(cxdf,cx_map,on='culture_type',how='left')
 
 
 # In[ ]:
 
 
-inappropriate_cx = cx_explore[cx_explore['Description'].isin(['Screen','Viral Chronic','Non-Sepsis Infection','Non-Culture','Postmortem','Non-Sterile Culture','Screening'])].reset_index(drop=True)
-inappropriate_cx = inappropriate_cx.groupby('culture_type')['patient_id'].count().reset_index().rename(columns={'patient_id':'count'})
+#inappropriate_cx = cx_explore[cx_explore['Description'].isin(['Screen','Viral Chronic','Non-Sepsis Infection','Non-Culture','Postmortem','Non-Sterile Culture','Screening'])].reset_index(drop=True)
+#inappropriate_cx = inappropriate_cx.groupby('culture_type')['patient_id'].count().reset_index().rename(columns={'patient_id':'count'})
+
+
+
+
+
+
+
+
+
 
 
 # #### Sepsis Calcs
@@ -926,7 +937,7 @@ Sep_3['Sepsis_Time'] = Sep_3['SOITime']
 Sep_3 = Sep_3[['patient_id', 'encounter_id', 'SOITime', 'score_time','Sepsis_Time', 'loc_cat', 'Score']]
 
 
-
+Sep_3.to_csv("Sep_3.csv", index=False)
 
 
 # In[ ]:
@@ -937,6 +948,8 @@ RTI = RTI_full[['patient_id', 'encounter_id', 'score_time','SOFA_GCS_Score','SOF
 RTI['score_time'] = pd.to_datetime(RTI['score_time'],utc=True)
 RTI['patient_id'] = RTI['patient_id'].astype(str)
 RTI['encounter_id'] = RTI['encounter_id'].astype(str)
+
+RTI.to_csv("RTI.csv", index=False)
 
 
 # In[ ]:
@@ -956,6 +969,8 @@ SOI_trim['culture_time'] = pd.to_datetime(SOI_trim['culture_time'],utc=True)
 SOI_trim['SOITime'] = pd.to_datetime(SOI_trim['SOITime'],utc=True)
 SOI_trim['patient_id'] = SOI_trim['patient_id'].astype(str)
 SOI_trim['encounter_id'] = SOI_trim['encounter_id'].astype(str)
+
+SOI_trim.to_csv("SOI_trim.csv", index=False)
 
 
 # ### SQL
@@ -981,6 +996,7 @@ MSep_3 = MSep_3.sort_values(by='MSep_Time').groupby('encounter_id').first().rese
 MSep_3 = MSep_3[['patient_id','encounter_id', 'stay_id', 'antibiotic_time', 'culture_time', 'suspected_infection_time', 
                  'sofa_time','MSep_Time', 'sofa_score', 'respiration', 'coagulation', 'liver', 'cardiovascular', 'cns', 'renal', 'sepsis3']]
 
+MSep_3.to_csv("MSep_3.csv", index=False)
 
 # In[ ]:
 
@@ -994,7 +1010,7 @@ MIMIC_SOI['culture_time'] = pd.to_datetime(MIMIC_SOI['culture_time'],utc=True)
 
 MIMIC_SOI = MIMIC_SOI[MIMIC_SOI['suspected_infection']==1]
 
-
+MIMIC_SOI.to_csv("MIMIC_SOI.csv", index=False)
 # In[ ]:
 
 
@@ -1005,6 +1021,14 @@ MIMIC_SOFA['icu_intime'] = pd.to_datetime(MIMIC_SOFA['icu_intime'],utc=True)
 MIMIC_SOFA['icu_outtime'] = pd.to_datetime(MIMIC_SOFA['icu_outtime'],utc=True)
 MIMIC_SOFA['SOFA_start'] = pd.to_datetime(MIMIC_SOFA['SOFA_start'],utc=True)
 MIMIC_SOFA['SOFA_end'] = pd.to_datetime(MIMIC_SOFA['SOFA_end'],utc=True)
+
+
+MIMIC_SOFA.to_csv("MIMIC_SOFA.csv", index=False)
+
+
+
+
+
 
 
 # ### Remove cultures with only date if used for SOI in MIMIC
